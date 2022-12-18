@@ -1,57 +1,127 @@
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
-void printBoard(char board[3][3]) {
-    cout << "Current board:" << endl;
+int checkForWinner(char board[3]) {
+    bool spacesRemaining = false;
+
     for (int i = 0; i <= 2; i++) {
-        cout << board[i][0] << ' ' << board[i][1] << ' ' << board[i][2] << endl;
-    }
-}
+        if (board[3 * i] != '-' && board[3 * i] == board[3 * i + 1] && board[3 * i + 1] == board[3 * i + 2]) {
+            return (board[3 * i] == 'x') ? 1 : -1;
+        } else if (board[i] != '-' && board[i] == board[i + 3] && board[i + 3] == board[i + 6]) {
+            return (board[i] == 'x') ? 1 : -1;
+        }
 
-bool isValidMove(char board[3][3], int x, int y) {
-    if (x < 0 || x > 2 || y < 0 || y > 2) {
-        return false;
-    }
-
-    return board[x][y] == '-';
-}
-
-char checkForWinner(char board[3][3]) {
-    for (int i = 0; i <= 2; i++) {
-        if (board[i][0] != '-' && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
-            return board[i][0];
-        } else if (board[0][i] != '-' && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
-            return board[0][i];
+        if (board[3 * i] == '-' || board[3 * i + 1] == '-' || board[3 * i + 2] == '-') {
+            spacesRemaining = true;
         }
     }
 
-    if (board[0][0] != '-' && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
-        return board[0][0];
-    } else if (board[0][2] != '-' && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
-        return board[0][2];
+    if (!spacesRemaining) {
+        return 0;
     }
 
-    return '-';
+    if (board[0] != '-' && board[0] == board[4] && board[4] == board[8]) {
+        return (board[0] == 'x') ? 1 : -1;
+    } else if (board[2] != '-' && board[2] == board[4] && board[4] == board[6]) {
+        return (board[2] == 'x') ? 1 : -1;
+    }
+
+    return 2;
+}
+
+void printBoard(char board[9]) {
+    cout << "Current board:" << endl;
+    for (int i = 0; i <= 2; i++) {
+        cout << board[3 * i] << ' ' << board[3 * i + 1] << ' ' << board[3 * i + 2] << endl;
+    }
+}
+
+bool isValidMove(vector<int> emptySpaces, int loc) {
+    if (loc < 0 || loc > 8) {
+        return false;
+    }
+
+    for (int i = 0; i < emptySpaces.size(); i++) {
+        if (emptySpaces[i] == loc) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void findEmptySpaces(char board[9], vector<int> *emptySpaces) {
+    for (int i = 0; i <= 8; i++) {
+        if (board[i] == '-') {
+            emptySpaces->push_back(i);
+        }
+    }
+}
+
+int minimax(char board[9], int *move) {
+    vector<int> emptySpaces;
+    findEmptySpaces(board, &emptySpaces);
+
+    int code = checkForWinner(board);
+    if (code != 2) {
+        return -1 * code * (emptySpaces.size() + 1);
+    }
+
+    int max;
+    for (int i = 0; i < emptySpaces.size(); i++) {
+        char board_copy[9];
+        for(int j = 0; j <= 8; j++) {
+            board_copy[j] = board[j];
+        }
+        board_copy[emptySpaces[i]] = 'o';
+
+        int utility_score = 0;
+        for (int j = 0; j < emptySpaces.size(); j++) {
+            if (i != j) {
+                char board_copy_copy[9];
+                for(int n = 0; n <= 8; n++) {
+                    board_copy_copy[n] = board_copy[n];
+                }
+                board_copy_copy[emptySpaces[j]] = 'x';              
+                utility_score += minimax(board_copy_copy, NULL);
+            }
+        }
+
+        if (i == 0 || utility_score > max) {
+            max = utility_score;
+            if (move != NULL) {
+                *move = emptySpaces[i];
+            }
+        }
+    }
+    
+    return max;
+}
+
+int opponentTurn(char board[9]) {
+    int move;
+    minimax(board, &move);
+    
+    return move;
 }
 
 int main() {
-    bool gameOver = false;
-    char board[3][3] = {{'-', '-', '-'}, {'-', '-', '-'}, {'-', '-', '-'}};
-    while (!gameOver)
+    char board[9] = {'-', '-', '-', '-', '-', '-', '-', '-', '-'};
+    while (1)
     {
-        int x = -1;
-        int y = -1;
+        int loc;
 
         bool validMove = false;
         while (!validMove) {
-            cout << "Enter x coordinate (0 - 2)" << endl;
-            cin >> x;
+            cout << "Enter board coordinate (0 - 8)" << endl;
+            cin >> loc;
 
-            cout << "Enter y coordinate (0 - 2)" << endl;
-            cin >> y;
+            vector<int> emptySpaces;
+            findEmptySpaces(board, &emptySpaces);
             
-            validMove = isValidMove(board, x, y);
+            validMove = isValidMove(emptySpaces, loc);
 
             if (!validMove) {
                 cout << "Invalid move!" << endl;
@@ -59,15 +129,38 @@ int main() {
         }
 
 
-        board[y][x] = 'x';
+        board[loc] = 'x';
 
         printBoard(board);
 
-        char winner = checkForWinner(board);
-        if (winner != '-') {
-            cout << winner << " wins!" << endl;
-            gameOver = true;
+        int code = checkForWinner(board);
+        if (code == 1) {
+            cout << "You win!";
+            break;
+        } else if (code == -1) {
+            cout << "You lose!";
+            break;
+        } else if (code == 0) {
+            cout << "This game is a tie!";
+            break;
         }
+
+        int move = opponentTurn(board);
+        board[move] = 'o';
+
+        printBoard(board);
+
+        code = checkForWinner(board);
+        if (code == 1) {
+            cout << "You win!";
+            break;
+        } else if (code == -1) {
+            cout << "You lose!";
+            break;
+        } else if (code == 0) {
+            cout << "This game is a tie!";
+            break;
+        }        
     }
 
     return 0;
