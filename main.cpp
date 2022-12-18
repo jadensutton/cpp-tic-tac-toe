@@ -77,7 +77,7 @@ int minimax(char board[9], int *move) {
         }
         board_copy[emptySpaces[i]] = 'o';
 
-        int utility_score = 0;
+        int min_utility_score;
         for (int j = 0; j < emptySpaces.size(); j++) {
             if (i != j) {
                 char board_copy_copy[9];
@@ -85,12 +85,15 @@ int minimax(char board[9], int *move) {
                     board_copy_copy[n] = board_copy[n];
                 }
                 board_copy_copy[emptySpaces[j]] = 'x';              
-                utility_score += minimax(board_copy_copy, NULL);
+                int utility_score = minimax(board_copy_copy, NULL);
+                if (j == 0 || utility_score < min_utility_score || (i == 0 && j == 1)) {
+                    min_utility_score = utility_score;
+                }
             }
         }
 
-        if (i == 0 || utility_score > max) {
-            max = utility_score;
+        if (i == 0 || min_utility_score > max) {
+            max = min_utility_score;
             if (move != NULL) {
                 *move = emptySpaces[i];
             }
@@ -109,6 +112,7 @@ int opponentTurn(char board[9]) {
 
 int main() {
     char board[9] = {'-', '-', '-', '-', '-', '-', '-', '-', '-'};
+    printBoard(board);
     while (1)
     {
         int loc;
